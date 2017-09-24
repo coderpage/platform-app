@@ -1,0 +1,11 @@
+appname = platform-app
+httpport = 8001
+runmode = dev
+
+serverBaseUrl=
+
+mysqlDbName=
+mysqlDbUser=
+mysqlDbPass=
+
+apkUploadTk=
