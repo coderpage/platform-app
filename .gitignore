@@ -1,2 +1,5 @@
 *.conf
 *.DS_Store
+/upload
+platform-app
+main

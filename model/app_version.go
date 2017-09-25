@@ -4,7 +4,7 @@ import "github.com/astaxie/beego/orm"
 
 // AppVersion 版本信息
 type AppVersion struct {
-	ID             int64  `json:"id"`           // id
+	Id             int64  `json:"id"`           // id
 	AppName        string `json:"appName"`      // 应用名称
 	PackageName    string `json:"packageName"`  // 报名
 	ChangeLog      string `json:"changeLog"`    // change log
@@ -17,6 +17,8 @@ type AppVersion struct {
 	Uploader       string `json:"uploader"`     // 上传人名称
 	UploadDate     int64  `json:"uploadDate"`   // 上传时间
 	UploaderAvatar string `json:"uploadAvatar"` // 上传人的头像地址
+	DownloadToken  string `json:downloadToken`  // 下载令牌
+	DownloadCount  int64  `json:downloadCount`  // 下载数量
 }
 
 // AddNewVersion 添加新的版本
@@ -32,4 +34,31 @@ func FindLatestVersion(packageName string) (*AppVersion, error) {
 	o := orm.NewOrm()
 	err := o.QueryTable("AppVersion").Filter("PackageName", packageName).OrderBy("-UploadDate").Limit(1).One(appVersion)
 	return appVersion, err
+}
+
+// FindVersionByToken 通过 token 查找版本信息
+func FindVersionByToken(token string) (*AppVersion, error) {
+	appVersion := &AppVersion{DownloadToken: token}
+	o := orm.NewOrm()
+	err := o.QueryTable("AppVersion").Filter("DownloadToken", token).Limit(1).One(appVersion)
+	return appVersion, err
+}
+
+// IncreaseDownloadCount 下载量加一
+func IncreaseDownloadCount(id int64) {
+	o := orm.NewOrm()
+	err := o.Begin()
+
+	if err != nil {
+		return
+	}
+
+	_, err = o.Raw("SELECT download_count FROM app_version WHERE id = ? FOR UPDATE;", id).Exec()
+	_, err = o.Raw("UPDATE app_version SET download_count = download_count + 1 WHERE id = ?;", id).Exec()
+
+	if err != nil {
+		o.Rollback()
+	} else {
+		o.Commit()
+	}
 }

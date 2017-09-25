@@ -8,6 +8,7 @@ import (
 	"os"
 	"platform-app/controller"
 	"platform-app/model"
+	"platform-app/tool"
 	"strconv"
 	"time"
 
@@ -31,6 +32,37 @@ type Size interface {
 	Size() int64
 }
 
+// AppResponse API response model
+type AppResponse struct {
+	AppName        string `json:"appName"`      // 应用名称
+	PackageName    string `json:"packageName"`  // 报名
+	ChangeLog      string `json:"changeLog"`    // change log
+	VersionCode    int64  `json:"versionCode"`  // version code
+	VesionName     string `json:"versionName"`  // 版本号
+	DownloadURL    string `json:"downloadUrl"`  // 下载地址
+	FileSize       int64  `json:"fileSize"`     // 文件大小
+	IsRelease      bool   `json:"isRelease"`    // 是否 release
+	Uploader       string `json:"uploader"`     // 上传人名称
+	UploadDate     int64  `json:"uploadDate"`   // 上传时间
+	UploaderAvatar string `json:"uploadAvatar"` // 上传人的头像地址
+}
+
+// initFromModel
+func (response *AppResponse) initFromModel(appVersion *model.AppVersion) {
+	downloadUrl := beego.AppConfig.String("serverBaseUrl") + "/apk/" + appVersion.FileName + "?token=" + appVersion.DownloadToken
+	response.AppName = appVersion.AppName
+	response.PackageName = appVersion.PackageName
+	response.ChangeLog = appVersion.ChangeLog
+	response.VersionCode = appVersion.VersionCode
+	response.VesionName = appVersion.VesionName
+	response.DownloadURL = downloadUrl
+	response.FileSize = appVersion.FileSize
+	response.IsRelease = appVersion.IsRelease
+	response.Uploader = appVersion.Uploader
+	response.UploadDate = appVersion.UploadDate
+	response.UploaderAvatar = appVersion.UploaderAvatar
+}
+
 // GetLatest 获取最新的版本
 // @router /latest [get]
 func (handler *AppVersionHandler) GetLatest() {
@@ -48,9 +80,10 @@ func (handler *AppVersionHandler) GetLatest() {
 		handler.CustomAbort(http.StatusInternalServerError, err.Error())
 	}
 
-	appVersion.DownloadURL = beego.AppConfig.String("serverBaseUrl") + "/apk/" + appVersion.FileName
+	respData := &AppResponse{}
+	respData.initFromModel(appVersion)
 	resp := handler.NewResponse()
-	resp.SetStatus(http.StatusOK).SetData("data", appVersion)
+	resp.SetStatus(http.StatusOK).SetData("data", respData)
 	handler.Data["json"] = resp
 	handler.ServeJSON()
 }
@@ -122,6 +155,7 @@ func (handler *AppVersionHandler) Upload() {
 		return
 	}
 
+	uuid := tool.Rand().Hex()
 	verisonCode, _ := strconv.ParseInt(listener.VersionCode, 10, 64)
 	appVersion := &model.AppVersion{}
 	appVersion.AppName = appName
@@ -134,6 +168,8 @@ func (handler *AppVersionHandler) Upload() {
 	appVersion.DownloadURL = fileName
 	appVersion.IsRelease = isRelease
 	appVersion.UploadDate = time.Now().Unix()
+	appVersion.DownloadCount = 0
+	appVersion.DownloadToken = uuid
 	err = model.AddNewVersion(appVersion)
 	if err != nil {
 		resp.SetStatus(-1).SetMessage(err.Error())
@@ -146,8 +182,10 @@ func (handler *AppVersionHandler) Upload() {
 
 	appVersion.DownloadURL = beego.AppConfig.String("serverBaseUrl") + "/apk/" + appVersion.FileName
 
+	respData := &AppResponse{}
+	respData.initFromModel(appVersion)
 	resp.SetStatus(http.StatusOK).SetMessage(http.StatusText(http.StatusOK))
-	resp.SetData("data", appVersion)
+	resp.SetData("data", respData)
 	handler.Data["json"] = resp
 	handler.ServeJSON()
 }
