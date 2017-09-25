@@ -2,7 +2,6 @@ package controller
 
 import (
 	"encoding/json"
-	"page/constant/rsp"
 
 	"github.com/astaxie/beego"
 )
@@ -27,13 +26,13 @@ func (resp Response) JsonString() string {
 
 // 设置 response 的 status 值
 func (resp Response) SetStatus(status interface{}) Response {
-	resp[rsp.BodyStatus] = status
+	resp["status"] = status
 	return resp
 }
 
 // 设置 response 的 message 值
 func (resp Response) SetMessage(message interface{}) Response {
-	resp[rsp.BodyMsg] = message
+	resp["msg"] = message
 	return resp
 }
 
